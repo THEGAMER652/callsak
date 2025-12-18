@@ -1,500 +1,161 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sv">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Real-Time Chat and Video Call</title>
-    
-    <!-- Import Firebase SDK v8 (Realtime Database & App) via CDN -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
+    <title>SnabbChatt + Screenshare</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        /* Base styling */
-        body {
-            font-family: 'Inter', Arial, sans-serif;
-            background-color: #F7FFDC;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 10px;
-        }
-        .main-container {
-            width: 100%;
-            max-width: 600px;
-            background-color: #FFFFFF;
-            border: 1px solid #CCCCCC;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-        }
-        .header {
-            text-align: center;
-            padding-bottom: 15px;
-            border-bottom: 3px solid #66BB6A;
-            margin-bottom: 15px;
-        }
-        .header h2 {
-            color: #388E3C;
-            font-size: 1.8rem;
-            margin-top: 0;
-        }
-        .mode-selector button {
-            padding: 10px;
-            margin: 0 5px 15px;
-            background-color: #BBBBBB;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .mode-selector .active {
-            background-color: #66BB6A;
-        }
-
-        /* --- Chat Mode Styles --- */
-        #chat-mode {
-            display: block; /* Default view */
-        }
-        .chat-area {
-            height: 40vh;
-            max-height: 500px;
-            border: 1px solid #E0E0E0;
-            padding: 15px;
-            overflow-y: auto;
-            margin-bottom: 15px;
-            background-color: #FAFAFA;
-            border-radius: 8px;
-            scroll-behavior: smooth;
-        }
-        .message-box {
-            margin-bottom: 10px;
-            padding: 8px;
-            border-radius: 6px;
-            font-size: 0.9em;
-        }
-        .message-box span {
-            font-weight: 700;
-        }
-        .system {
-            color: #FF5722;
-            font-style: italic;
-            background-color: #FFF3E0;
-        }
-        .user {
-            color: #1976D2;
-        }
-        .self {
-            color: #388E3C;
-            text-align: right;
-            background-color: #E8F5E9;
-            margin-left: 20%;
-        }
-        .self span {
-            display: block;
-            font-weight: 700;
-            text-align: left;
-        }
-        .input-group {
-            display: flex;
-            gap: 10px;
-        }
-        .input-group input[type="text"] {
-            flex-grow: 1;
-            padding: 12px;
-            border: 2px solid #BBBBBB;
-            border-radius: 8px;
-        }
-        .input-group button {
-            padding: 12px 18px;
-            background-color: #66BB6A;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        
-        /* --- Video Mode Styles --- */
-        #video-mode {
-            display: none;
-        }
-        .video-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        .video-container {
-            border: 2px solid #388E3C;
-            border-radius: 8px;
-            overflow: hidden;
-            background-color: #000;
-        }
-        #localVideo, #remoteVideo {
-            width: 100%;
-            height: auto;
-            display: block;
-            aspect-ratio: 4 / 3;
-            background-color: #111;
-        }
-        .video-controls button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 5px;
-            background-color: #D32F2F;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .video-controls #startCallButton {
-             background-color: #1976D2;
-        }
-        .video-controls #startCallButton:disabled {
-             background-color: #90CAF9;
-             cursor: not-allowed;
-        }
-
+        body { font-family: 'Segoe UI', sans-serif; background: #23272a; color: white; text-align: center; padding: 20px; margin: 0; }
+        .box { background: #2c2f33; padding: 20px; border-radius: 10px; display: inline-block; min-width: 350px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .status-badge { padding: 5px 10px; border-radius: 4px; font-size: 12px; margin-bottom: 10px; display: inline-block; }
+        .online { background: #43b581; }
+        .offline { background: #f04747; }
+        input { padding: 12px; width: 80%; border-radius: 5px; border: none; margin: 10px 0; background: #202225; color: white; }
+        button { padding: 10px 20px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; margin: 5px; transition: 0.2s; }
+        .call-btn { background: #5865f2; color: white; }
+        .screen-btn { background: #43b581; color: white; display: none; }
+        .stop-btn { background: #ed4245; color: white; display: none; }
+        #video-container { margin-top: 20px; width: 100%; max-width: 600px; display: none; border-radius: 8px; overflow: hidden; background: black; line-height: 0; }
+        video { width: 100%; height: auto; }
+        select { background: #202225; color: white; padding: 5px; border-radius: 4px; border: 1px solid #4f545c; width: 80%; }
     </style>
 </head>
 <body>
 
-    <div class="main-container">
-        <div class="header">
-            <h2>📢 Global Communications</h2>
-            <p id="statusMessage">Connecting to database...</p>
-        </div>
-
-        <div class="mode-selector">
-             <button id="chatModeButton" class="active">Text Chat</button>
-             <button id="videoModeButton">Video/Audio Call</button>
-        </div>
-
-        <!-- --- TEXT CHAT INTERFACE --- -->
-        <div id="chat-mode">
-            <div class="chat-area" id="chatArea">
-                <!-- Chat messages will appear here -->
-            </div>
-            <div class="input-group">
-                <input type="text" id="chatInput" placeholder="Type your message here..." autocomplete="off">
-                <button id="sendButton">Send</button>
-            </div>
-        </div>
-
-        <!-- --- VIDEO CALL INTERFACE --- -->
-        <div id="video-mode">
-            <div class="video-grid">
-                <div class="video-container">
-                    <video id="localVideo" autoplay muted playsinline></video>
-                </div>
-                <div class="video-container">
-                    <video id="remoteVideo" autoplay playsinline></video>
-                </div>
-            </div>
-            <div class="video-controls">
-                <button id="startCallButton">Start Video Call</button>
-                <button id="hangUpButton" disabled>Hang Up</button>
-            </div>
-            <p id="videoStatus" style="text-align: center; font-style: italic; color: #555;">Ready for call.</p>
-        </div>
-
+<div class="box">
+    <h2>SnabbChatt</h2>
+    <div id="peer-status" class="status-badge offline">Ansluter...</div>
+    <p id="display-id" style="font-weight: bold; color: #b9bbbe;">Ditt ID: väntar...</p>
+    
+    <hr style="border: 0.5px solid #4f545c;">
+    
+    <label style="font-size: 12px; color: #b9bbbe;">VÄLJ MIKROFON</label><br>
+    <select id="mic-select"></select>
+    
+    <br><br>
+    
+    <input type="text" id="remote-id" placeholder="Klistra in kompisens ID">
+    <br>
+    <button id="start-call" class="call-btn">Anslut till rum</button>
+    <button id="start-screen" class="screen-btn">Dela skärm</button>
+    <button id="end-call" class="stop-btn">Lägg på</button>
+    
+    <div id="video-container">
+        <video id="remote-video" autoplay playsinline></video>
     </div>
 
-    <script>
-        // --- CONFIGURATION ---
-        const firebaseConfig = {
-          apiKey: "AIzaSyBxaoBS9ckZ99mJWG1Y3gT5Aa5uwzSUQZI",
-          authDomain: "fakeomege.firebaseapp.com",
-          projectId: "fakeomege",
-          storageBucket: "fakeomege.firebasestorage.app",
-          messagingSenderId: "931074805838",
-          appId: "1:931074805838:web:280a80c0a2f5e175a5f31f"
-        };
-        
-        // --- FIREBASE SETUP ---
-        let database, chatRef, callRef;
-        let currentUserId;
+    <p id="log" style="color: #faa61a; font-size: 12px; margin-top: 20px;"></p>
+</div>
 
-        // Initialize Firebase
+<audio id="remote-audio" autoplay></audio>
+
+<script>
+    const logElem = document.getElementById('log');
+    const statusElem = document.getElementById('peer-status');
+    const startBtn = document.getElementById('start-call');
+    const screenBtn = document.getElementById('start-screen');
+    const stopBtn = document.getElementById('end-call');
+    const videoContainer = document.getElementById('video-container');
+    
+    const peer = new Peer(); 
+    let localStream;
+    let currentCall;
+
+    function log(msg) { logElem.innerText = msg; }
+
+    // Fix för att hämta mikrofoner
+    async function initDevices() {
         try {
-            firebase.initializeApp(firebaseConfig);
-            database = firebase.database();
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const micSelect = document.getElementById('mic-select');
             
-            // Text Chat path
-            chatRef = database.ref('globalChat/messages'); 
-            
-            // Video Call Signaling path (Simplified: Global room for two users)
-            callRef = database.ref('callRoom/global'); 
-
-            // User ID setup
-            const generateUserId = () => 'User_' + Math.random().toString(36).substr(2, 4).toUpperCase();
-            currentUserId = localStorage.getItem('chatUserId') || generateUserId();
-            localStorage.setItem('chatUserId', currentUserId);
-            
-            document.getElementById('statusMessage').textContent = `Connected as: ${currentUserId}`;
-            initChatListeners(); // Start listening for chat messages immediately
-
-        } catch (error) {
-            console.error("Firebase Initialization Error:", error);
-            document.getElementById('statusMessage').textContent = 'ERROR: Could not connect to Firebase.';
-        }
-        
-        // --- DOM ELEMENTS ---
-        const chatArea = document.getElementById('chatArea');
-        const chatInput = document.getElementById('chatInput');
-        const sendButton = document.getElementById('sendButton');
-        const localVideo = document.getElementById('localVideo');
-        const remoteVideo = document.getElementById('remoteVideo');
-        const startCallButton = document.getElementById('startCallButton');
-        const hangUpButton = document.getElementById('hangUpButton');
-        const videoStatus = document.getElementById('videoStatus');
-        const chatModeDiv = document.getElementById('chat-mode');
-        const videoModeDiv = document.getElementById('video-mode');
-        const chatModeButton = document.getElementById('chatModeButton');
-        const videoModeButton = document.getElementById('videoModeButton');
-
-        // --- CHAT FUNCTIONS ---
-
-        function addMessage(user, msg, className) {
-            const msgBox = document.createElement('div');
-            
-            const isSelf = user === currentUserId;
-            msgBox.className = 'message-box ' + className;
-            if (isSelf) {
-                 msgBox.className = 'message-box self';
-            }
-
-            const senderSpan = document.createElement('span');
-            senderSpan.className = className;
-            senderSpan.textContent = user + ': ';
-
-            msgBox.appendChild(senderSpan);
-            msgBox.appendChild(document.createTextNode(msg));
-
-            chatArea.appendChild(msgBox);
-            // Scroll to bottom
-            chatArea.scrollTop = chatArea.scrollHeight;
-        }
-
-        function sendMessage() {
-            const message = chatInput.value.trim();
-            if (message) {
-                // Send object to Firebase Realtime Database
-                chatRef.push({
-                    user: currentUserId,
-                    msg: message,
-                    timestamp: firebase.database.ServerValue.TIMESTAMP
-                });
-                
-                chatInput.value = ''; 
-                chatInput.focus();
-            }
-        }
-        
-        function initChatListeners() {
-            chatRef.limitToLast(50).on('child_added', (snapshot) => {
-                const data = snapshot.val();
-                let msgClass = (data.user === 'System') ? 'system' : 'user';
-                addMessage(data.user, data.msg, msgClass);
+            micSelect.innerHTML = '';
+            devices.filter(d => d.kind === 'audioinput').forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.deviceId;
+                opt.text = d.label || "Mikrofon " + (micSelect.length + 1);
+                micSelect.appendChild(opt);
             });
+            localStream = stream;
+            log("Mikrofon redo.");
+        } catch (err) {
+            log("Kunde inte hitta mikrofon. Kolla HTTPS.");
+        }
+    }
+
+    peer.on('open', (id) => {
+        statusElem.innerText = "Online";
+        statusElem.className = "status-badge online";
+        document.getElementById('display-id').innerText = "Ditt ID: " + id;
+    });
+
+    // Hantera inkommande samtal (Svarar automatiskt med ljud)
+    peer.on('call', async (call) => {
+        log("Inkommande samtal...");
+        call.answer(localStream);
+        handleCall(call);
+    });
+
+    // Starta vanligt samtal (Ljud)
+    startBtn.onclick = () => {
+        const id = document.getElementById('remote-id').value;
+        if(!id) return log("Ange ett ID!");
+        const call = peer.call(id, localStream);
+        handleCall(call);
+    };
+
+    // STARTA SCREENSHARE
+    screenBtn.onclick = async () => {
+        try {
+            const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+            const id = document.getElementById('remote-id').value;
             
-            // System Message on Start
-            addMessage('System', `Welcome, ${currentUserId}! Start chatting or join a video call.`, 'system');
-
-            // Chat Event Listeners
-            sendButton.addEventListener('click', sendMessage);
-            chatInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    sendMessage();
-                }
-            });
-        }
-
-
-        // --- WEBRTC / VIDEO CALL FUNCTIONS ---
-        
-        let pc; // PeerConnection
-        let localStream;
-        const configuration = {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-            ]
-        };
-        
-        // 1. Get local camera and microphone
-        async function startLocalStream() {
-            try {
-                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                localVideo.srcObject = localStream;
-                videoStatus.textContent = "Local camera/mic started. Ready to call or receive.";
-                startCallButton.disabled = false;
-                return true;
-            } catch (error) {
-                videoStatus.textContent = `ERROR: Could not access media devices. (${error.name})`;
-                console.error("Error accessing media devices:", error);
-                startCallButton.disabled = true;
-                return false;
-            }
-        }
-        
-        // 2. Initialize PeerConnection
-        function initializePeerConnection() {
-            pc = new RTCPeerConnection(configuration);
-
-            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-
-            pc.ontrack = (event) => {
-                remoteVideo.srcObject = event.streams[0];
-            };
-
-            // Gather ICE candidates and send them to the other peer via Firebase
-            pc.onicecandidate = (event) => {
-                if (event.candidate) {
-                    callRef.child('iceCandidates').push({
-                        sender: currentUserId,
-                        candidate: event.candidate.toJSON()
-                    });
-                }
-            };
-        }
-        
-        // 3. Create Offer (Initiator)
-        async function createOffer() {
-            initializePeerConnection();
+            // Om vi redan är i ett samtal, ersätt streamen eller starta nytt
+            const call = peer.call(id, screenStream);
+            handleCall(call);
             
-            videoStatus.textContent = "Creating call offer...";
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-
-            // Send offer to Firebase
-            await callRef.child('offer').set({
-                sender: currentUserId,
-                sdp: offer.sdp,
-                type: offer.type
-            });
-            
-            startCallButton.disabled = true;
-            hangUpButton.disabled = false;
-            videoStatus.textContent = "Offer sent. Waiting for answer...";
+            // Om användaren slutar dela skärm via webbläsarens egen knapp
+            screenStream.getVideoTracks()[0].onended = () => stopCall();
+        } catch (err) {
+            log("Screenshare avbröts.");
         }
+    };
 
-        // 4. Handle Offer (Receiver)
-        async function handleOffer(offerData) {
-            if (!localStream) {
-                 await startLocalStream();
-            }
-            if (!pc) {
-                initializePeerConnection();
+    function handleCall(call) {
+        currentCall = call;
+        call.on('stream', (remoteStream) => {
+            // Kolla om det är video (screenshare) eller bara ljud
+            if (remoteStream.getVideoTracks().length > 0) {
+                videoContainer.style.display = 'block';
+                document.getElementById('remote-video').srcObject = remoteStream;
+            } else {
+                document.getElementById('remote-audio').srcObject = remoteStream;
             }
 
-            videoStatus.textContent = `Incoming call from ${offerData.sender}. Answering...`;
-            
-            await pc.setRemoteDescription(new RTCSessionDescription(offerData));
-            
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
+            startBtn.style.display = 'none';
+            screenBtn.style.display = 'inline-block';
+            stopBtn.style.display = 'inline-block';
+            log("Ansluten!");
+        });
 
-            // Send answer back via Firebase
-            await callRef.child('answer').set({
-                sender: currentUserId,
-                sdp: answer.sdp,
-                type: answer.type
-            });
-            
-            startCallButton.disabled = true;
-            hangUpButton.disabled = false;
-            videoStatus.textContent = "Answer sent. Connecting...";
-        }
-        
-        // 5. Handle Answer (Initiator)
-        async function handleAnswer(answerData) {
-            videoStatus.textContent = "Received answer. Finalizing connection...";
-            await pc.setRemoteDescription(new RTCSessionDescription(answerData));
-            videoStatus.textContent = "Call connected!";
-        }
+        call.on('close', stopCall);
+    }
 
-        // 6. Firebase Signaling Listener
-        function initVideoListeners() {
-            // Listen for Offers
-            callRef.child('offer').on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data && data.sender !== currentUserId && !pc) {
-                    handleOffer(data);
-                }
-            });
+    function stopCall() {
+        if (currentCall) currentCall.close();
+        document.getElementById('remote-audio').srcObject = null;
+        document.getElementById('remote-video').srcObject = null;
+        videoContainer.style.display = 'none';
+        startBtn.style.display = 'inline-block';
+        screenBtn.style.display = 'none';
+        stopBtn.style.display = 'none';
+        log("Samtalet avslutat.");
+    }
 
-            // Listen for Answers
-            callRef.child('answer').on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data && data.sender !== currentUserId && pc && pc.localDescription.type === 'offer') {
-                    handleAnswer(data);
-                }
-            });
-            
-            // Listen for ICE Candidates
-            callRef.child('iceCandidates').on('child_added', (snapshot) => {
-                const data = snapshot.val();
-                if (data && data.sender !== currentUserId && pc && pc.remoteDescription) {
-                    pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-                }
-            });
-            
-            // Call control buttons
-            startCallButton.addEventListener('click', createOffer);
-            hangUpButton.addEventListener('click', hangUp);
-        }
-        
-        // 7. Hang Up / Reset
-        function hangUp() {
-            if (pc) {
-                pc.close();
-                pc = null;
-            }
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-                localVideo.srcObject = null;
-            }
-            remoteVideo.srcObject = null;
-            
-            // Clear Firebase signaling path to enable new calls
-            callRef.set(null); 
+    stopBtn.onclick = stopCall;
 
-            startCallButton.disabled = false;
-            hangUpButton.disabled = true;
-            videoStatus.textContent = "Call ended. Ready for new call.";
-        }
-        
-        // --- MODE SWITCHING ---
-
-        function setMode(mode) {
-            if (mode === 'chat') {
-                chatModeDiv.style.display = 'block';
-                videoModeDiv.style.display = 'none';
-                chatModeButton.classList.add('active');
-                videoModeButton.classList.remove('active');
-                hangUp(); // Ensure call is terminated when switching back to chat
-            } else if (mode === 'video') {
-                chatModeDiv.style.display = 'none';
-                videoModeDiv.style.display = 'block';
-                chatModeButton.classList.remove('active');
-                videoModeButton.classList.add('active');
-                // Initiate stream when entering video mode
-                startLocalStream();
-                initVideoListeners();
-            }
-        }
-        
-        chatModeButton.addEventListener('click', () => setMode('chat'));
-        videoModeButton.addEventListener('click', () => setMode('video'));
-        
-        // Set default mode
-        setMode('chat'); 
-
-    </script>
+    initDevices();
+</script>
 </body>
 </html>
