@@ -2,160 +2,170 @@
 <html lang="sv">
 <head>
     <meta charset="UTF-8">
-    <title>SnabbChatt + Screenshare</title>
+    <title>SnabbChatt Pro - Video & Screen</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #23272a; color: white; text-align: center; padding: 20px; margin: 0; }
-        .box { background: #2c2f33; padding: 20px; border-radius: 10px; display: inline-block; min-width: 350px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        .status-badge { padding: 5px 10px; border-radius: 4px; font-size: 12px; margin-bottom: 10px; display: inline-block; }
-        .online { background: #43b581; }
-        .offline { background: #f04747; }
-        input { padding: 12px; width: 80%; border-radius: 5px; border: none; margin: 10px 0; background: #202225; color: white; }
-        button { padding: 10px 20px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; margin: 5px; transition: 0.2s; }
-        .call-btn { background: #5865f2; color: white; }
-        .screen-btn { background: #43b581; color: white; display: none; }
-        .stop-btn { background: #ed4245; color: white; display: none; }
-        #video-container { margin-top: 20px; width: 100%; max-width: 600px; display: none; border-radius: 8px; overflow: hidden; background: black; line-height: 0; }
-        video { width: 100%; height: auto; }
-        select { background: #202225; color: white; padding: 5px; border-radius: 4px; border: 1px solid #4f545c; width: 80%; }
+        body { font-family: 'Segoe UI', sans-serif; background: #23272a; color: white; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+        .box { background: #2c2f33; padding: 25px; border-radius: 15px; width: 90%; max-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; }
+        .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 12px; margin-bottom: 15px; display: inline-block; font-weight: bold; }
+        .online { background: #43b581; color: white; }
+        .offline { background: #f04747; color: white; }
+        input { padding: 12px; width: 80%; border-radius: 5px; border: none; margin: 10px 0; background: #202225; color: white; font-size: 16px; }
+        
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        button { padding: 12px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; transition: 0.3s; color: white; }
+        .btn-call { background: #5865f2; grid-column: span 2; }
+        .btn-camera { background: #4f545c; }
+        .btn-screen { background: #43b581; }
+        .btn-stop { background: #ed4245; grid-column: span 2; display: none; }
+        button:hover { opacity: 0.8; }
+
+        #video-grid { margin-top: 20px; display: none; width: 100%; gap: 10px; flex-direction: column; }
+        .video-wrapper { position: relative; width: 100%; background: #000; border-radius: 8px; overflow: hidden; line-height: 0; }
+        video { width: 100%; height: auto; border-radius: 8px; }
+        .label { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.5); padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+        
+        #my-video { width: 30%; position: absolute; top: 10px; right: 10px; border: 2px solid #5865f2; z-index: 10; }
+        select { background: #202225; color: white; padding: 8px; border-radius: 4px; width: 100%; margin-top: 5px; border: 1px solid #4f545c; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h2>SnabbChatt</h2>
-    <div id="peer-status" class="status-badge offline">Ansluter...</div>
-    <p id="display-id" style="font-weight: bold; color: #b9bbbe;">Ditt ID: väntar...</p>
-    
-    <hr style="border: 0.5px solid #4f545c;">
-    
-    <label style="font-size: 12px; color: #b9bbbe;">VÄLJ MIKROFON</label><br>
-    <select id="mic-select"></select>
-    
-    <br><br>
-    
-    <input type="text" id="remote-id" placeholder="Klistra in kompisens ID">
-    <br>
-    <button id="start-call" class="call-btn">Anslut till rum</button>
-    <button id="start-screen" class="screen-btn">Dela skärm</button>
-    <button id="end-call" class="stop-btn">Lägg på</button>
-    
-    <div id="video-container">
-        <video id="remote-video" autoplay playsinline></video>
+    <div id="peer-status" class="status-badge offline">ANSLUTER TILL NÄTVERKET...</div>
+    <h2 style="margin: 0 0 10px 0;">SnabbChatt Pro</h2>
+    <p id="display-id" style="font-size: 14px; color: #b9bbbe; cursor: pointer;" onclick="copyID()">Klicka för att kopiera ditt ID</p>
+
+    <div style="text-align: left; margin-bottom: 15px;">
+        <label style="font-size: 11px; color: #72767d; font-weight: bold;">INPUT ENHET</label>
+        <select id="mic-select"></select>
     </div>
 
-    <p id="log" style="color: #faa61a; font-size: 12px; margin-top: 20px;"></p>
+    <input type="text" id="remote-id" placeholder="Klistra in vännens ID">
+    
+    <div class="controls">
+        <button id="start-call" class="btn-call">📞 Starta Samtal</button>
+        <button id="toggle-camera" class="btn-camera" style="display:none;">📷 Kamera På/Av</button>
+        <button id="start-screen" class="btn-screen" style="display:none;">🖥️ Dela Skärm</button>
+        <button id="end-call" class="btn-stop">❌ Lägg på</button>
+    </div>
+
+    <div id="video-grid">
+        <div class="video-wrapper">
+            <video id="remote-video" autoplay playsinline></video>
+            <div class="label">Vän</div>
+            <video id="my-video" autoplay playsinline muted></video>
+        </div>
+    </div>
+
+    <p id="log" style="color: #faa61a; font-size: 12px; margin-top: 15px;"></p>
 </div>
 
 <audio id="remote-audio" autoplay></audio>
 
 <script>
-    const logElem = document.getElementById('log');
-    const statusElem = document.getElementById('peer-status');
-    const startBtn = document.getElementById('start-call');
-    const screenBtn = document.getElementById('start-screen');
-    const stopBtn = document.getElementById('end-call');
-    const videoContainer = document.getElementById('video-container');
-    
-    const peer = new Peer(); 
-    let localStream;
+    const peer = new Peer();
+    let myStream;
     let currentCall;
+    
+    const log = (m) => document.getElementById('log').innerText = m;
+    const remoteVideo = document.getElementById('remote-video');
+    const myVideoDisplay = document.getElementById('my-video');
 
-    function log(msg) { logElem.innerText = msg; }
-
-    // Fix för att hämta mikrofoner
-    async function initDevices() {
+    // 1. Initiera mikrofon och kamera
+    async function initMedia(video = true) {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const micSelect = document.getElementById('mic-select');
-            
-            micSelect.innerHTML = '';
-            devices.filter(d => d.kind === 'audioinput').forEach(d => {
-                const opt = document.createElement('option');
-                opt.value = d.deviceId;
-                opt.text = d.label || "Mikrofon " + (micSelect.length + 1);
-                micSelect.appendChild(opt);
-            });
-            localStream = stream;
-            log("Mikrofon redo.");
-        } catch (err) {
-            log("Kunde inte hitta mikrofon. Kolla HTTPS.");
+            const constraints = { 
+                audio: { deviceId: document.getElementById('mic-select').value },
+                video: video 
+            };
+            myStream = await navigator.mediaDevices.getUserMedia(constraints);
+            myVideoDisplay.srcObject = myStream;
+            return myStream;
+        } catch (e) {
+            log("Kunde inte starta media. Kolla inställningar.");
         }
     }
 
-    peer.on('open', (id) => {
-        statusElem.innerText = "Online";
-        statusElem.className = "status-badge online";
+    // Fyll mikrofonlistan
+    navigator.mediaDevices.enumerateDevices().then(devices => {
+        const select = document.getElementById('mic-select');
+        devices.filter(d => d.kind === 'audioinput').forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.deviceId;
+            opt.text = d.label || `Mikrofon ${select.length + 1}`;
+            select.appendChild(opt);
+        });
+    });
+
+    peer.on('open', id => {
+        document.getElementById('peer-status').innerText = "ONLINE";
+        document.getElementById('peer-status').className = "status-badge online";
         document.getElementById('display-id').innerText = "Ditt ID: " + id;
     });
 
-    // Hantera inkommande samtal (Svarar automatiskt med ljud)
-    peer.on('call', async (call) => {
-        log("Inkommande samtal...");
-        call.answer(localStream);
-        handleCall(call);
+    // Svara på samtal
+    peer.on('call', async call => {
+        log("Det ringer...");
+        const stream = await initMedia(true);
+        call.answer(stream);
+        setupCallUI(call);
     });
 
-    // Starta vanligt samtal (Ljud)
-    startBtn.onclick = () => {
+    // Ring upp
+    document.getElementById('start-call').onclick = async () => {
         const id = document.getElementById('remote-id').value;
-        if(!id) return log("Ange ett ID!");
-        const call = peer.call(id, localStream);
-        handleCall(call);
+        if(!id) return log("Ange ID!");
+        const stream = await initMedia(true);
+        const call = peer.call(id, stream);
+        setupCallUI(call);
     };
 
-    // STARTA SCREENSHARE
-    screenBtn.onclick = async () => {
+    // Dela skärm
+    document.getElementById('start-screen').onclick = async () => {
         try {
             const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-            const id = document.getElementById('remote-id').value;
+            const videoTrack = screenStream.getVideoTracks()[0];
             
-            // Om vi redan är i ett samtal, ersätt streamen eller starta nytt
-            const call = peer.call(id, screenStream);
-            handleCall(call);
-            
-            // Om användaren slutar dela skärm via webbläsarens egen knapp
-            screenStream.getVideoTracks()[0].onended = () => stopCall();
-        } catch (err) {
-            log("Screenshare avbröts.");
-        }
+            // Ersätt videospåret i det pågående samtalet
+            const sender = currentCall.peerConnection.getSenders().find(s => s.track.kind === 'video');
+            sender.replaceTrack(videoTrack);
+            myVideoDisplay.srcObject = screenStream;
+
+            videoTrack.onended = () => {
+                sender.replaceTrack(myStream.getVideoTracks()[0]);
+                myVideoDisplay.srcObject = myStream;
+            };
+        } catch (e) { log("Skärmdelning avbruten."); }
     };
 
-    function handleCall(call) {
+    function setupCallUI(call) {
         currentCall = call;
-        call.on('stream', (remoteStream) => {
-            // Kolla om det är video (screenshare) eller bara ljud
-            if (remoteStream.getVideoTracks().length > 0) {
-                videoContainer.style.display = 'block';
-                document.getElementById('remote-video').srcObject = remoteStream;
+        document.getElementById('video-grid').style.display = 'flex';
+        document.getElementById('start-call').style.display = 'none';
+        document.getElementById('toggle-camera').style.display = 'inline-block';
+        document.getElementById('start-screen').style.display = 'inline-block';
+        document.getElementById('end-call').style.display = 'inline-block';
+
+        call.on('stream', stream => {
+            if (stream.getVideoTracks().length > 0) {
+                remoteVideo.srcObject = stream;
             } else {
-                document.getElementById('remote-audio').srcObject = remoteStream;
+                document.getElementById('remote-audio').srcObject = stream;
             }
-
-            startBtn.style.display = 'none';
-            screenBtn.style.display = 'inline-block';
-            stopBtn.style.display = 'inline-block';
-            log("Ansluten!");
         });
-
-        call.on('close', stopCall);
     }
 
-    function stopCall() {
-        if (currentCall) currentCall.close();
-        document.getElementById('remote-audio').srcObject = null;
-        document.getElementById('remote-video').srcObject = null;
-        videoContainer.style.display = 'none';
-        startBtn.style.display = 'inline-block';
-        screenBtn.style.display = 'none';
-        stopBtn.style.display = 'none';
-        log("Samtalet avslutat.");
+    document.getElementById('end-call').onclick = () => {
+        if(currentCall) currentCall.close();
+        location.reload(); // Enklast på Vercel för att nollställa P2P-sessionen
+    };
+
+    function copyID() {
+        const idText = document.getElementById('display-id').innerText.replace("Ditt ID: ", "");
+        navigator.clipboard.writeText(idText);
+        log("ID kopierat till urklipp!");
     }
-
-    stopBtn.onclick = stopCall;
-
-    initDevices();
 </script>
 </body>
 </html>
