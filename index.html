@@ -2,102 +2,90 @@
 <html lang="sv">
 <head>
     <meta charset="UTF-8">
-    <title>SnabbChatt - Talk & Text</title>
+    <title>SnabbChatt - Fixad Chatt & Röst</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #2f3136; color: white; margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-        .app-container { background: #36393f; width: 400px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); overflow: hidden; display: flex; flex-direction: column; position: relative; }
-        
-        /* Status & ID */
+        .app-container { background: #36393f; width: 400px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); overflow: hidden; display: flex; flex-direction: column; position: relative; border: 1px solid #4f545c; }
         .header { padding: 15px; background: #2f3136; text-align: center; border-bottom: 1px solid #202225; }
-        .status-dot { width: 10px; height: 10px; background: #f04747; border-radius: 50%; display: inline-block; margin-right: 5px; }
-        .online .status-dot { background: #43b581; }
-        #display-id { font-size: 12px; color: #b9bbbe; cursor: pointer; margin-top: 5px; }
-
-        /* Chatt-delen */
-        #chat-box { height: 250px; padding: 15px; overflow-y: auto; background: #36393f; display: flex; flex-direction: column; gap: 8px; }
-        .msg { padding: 8px 12px; border-radius: 8px; font-size: 14px; max-width: 80%; }
-        .msg.me { background: #5865f2; align-self: flex-end; }
-        .msg.them { background: #4f545c; align-self: flex-start; }
-
-        /* Kontroller */
-        .controls { padding: 15px; background: #2f3136; display: flex; flex-direction: column; gap: 10px; }
-        input, select { background: #202225; color: white; border: none; padding: 10px; border-radius: 5px; outline: none; }
-        .btn-row { display: flex; gap: 5px; }
-        button { flex: 1; padding: 10px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.2s; color: white; }
-        .btn-call { background: #43b581; }
-        .btn-hangup { background: #ed4245; display: none; }
-        .btn-send { background: #5865f2; width: 60px; }
-
-        /* Inkommande samtal Overlay */
-        #incoming-overlay { 
-            display: none; position: absolute; top:0; left:0; width:100%; height:100%; 
-            background: rgba(47, 49, 54, 0.95); z-index: 100; flex-direction: column; 
-            align-items: center; justify-content: center; text-align: center;
-        }
+        #display-id { font-size: 12px; color: #b9bbbe; cursor: pointer; margin-top: 5px; background: #202225; padding: 5px; border-radius: 4px; }
+        #chat-box { height: 300px; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background: #36393f; }
+        .msg { padding: 8px 12px; border-radius: 8px; font-size: 14px; max-width: 80%; word-wrap: break-word; }
+        .msg.me { background: #5865f2; align-self: flex-end; color: white; }
+        .msg.them { background: #4f545c; align-self: flex-start; color: white; }
+        .controls { padding: 15px; background: #2f3136; border-top: 1px solid #202225; }
+        .input-row { display: flex; gap: 5px; margin-bottom: 10px; }
+        input { background: #202225; color: white; border: none; padding: 10px; border-radius: 5px; flex: 1; outline: none; }
+        button { border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.2s; color: white; }
+        .btn-send { background: #5865f2; padding: 0 15px; }
+        .btn-call { background: #43b581; width: 100%; padding: 10px; margin-top: 10px; }
+        .btn-hangup { background: #ed4245; width: 100%; padding: 10px; margin-top: 10px; display: none; }
+        #incoming-overlay { display: none; position: absolute; inset: 0; background: rgba(47, 49, 54, 0.98); z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
-<body class="offline">
+<body>
 
 <div class="app-container">
     <div id="incoming-overlay">
-        <h3 style="margin-bottom: 20px;">📞 Inkommande samtal...</h3>
-        <button id="answer-btn" style="background: #43b581; width: 150px; margin-bottom: 10px;">SVARA</button>
-        <button id="decline-btn" style="background: #f04747; width: 150px;">NEKA</button>
+        <h2 style="color:#43b581">📞 RINGER...</h2>
+        <button id="answer-btn" style="background:#43b581; width:80%; padding:15px; margin-bottom:10px;">SVARA</button>
+        <button id="decline-btn" style="background:#ed4245; width:80%; padding:15px;">AVBÖJ</button>
     </div>
 
-    <div class="header" id="status-header">
-        <div class="status-dot"></div> <span style="font-size: 14px; font-weight: bold;">Röst & Chatt</span>
-        <div id="display-id" title="Klicka för att kopiera">Hämtar ID...</div>
+    <div class="header">
+        <div style="font-weight: bold;">💬 SNABBCHATT</div>
+        <div id="display-id">Hämtar ditt ID...</div>
     </div>
 
-    <div id="chat-box">
-        <div class="msg them">Välkommen! Dela ditt ID för att börja prata.</div>
-    </div>
+    <div id="chat-box"></div>
 
     <div class="controls">
-        <div style="display: flex; gap: 5px;">
-            <input type="text" id="chat-input" placeholder="Skriv ett meddelande..." style="flex: 1;">
-            <button id="send-btn" class="btn-send">Sänd</button>
+        <div class="input-row">
+            <input type="text" id="chat-input" placeholder="Skriv ett meddelande...">
+            <button id="send-btn" class="btn-send">SÄND</button>
         </div>
-        
-        <hr style="border: 0.5px solid #4f545c; width: 100%;">
-        
-        <select id="mic-select"></select>
-        <input type="text" id="remote-id" placeholder="Vännens ID för samtal">
-        <button id="call-btn" class="btn-call">📞 Starta samtal</button>
-        <button id="hangup-btn" class="btn-hangup">❌ Lägg på</button>
+        <input type="text" id="remote-id" placeholder="Vännens ID">
+        <button id="call-btn" class="btn-call">📞 RING & ANSLUT</button>
+        <button id="hangup-btn" class="btn-hangup">❌ LÄGG PÅ</button>
     </div>
 </div>
 
 <audio id="remote-audio" autoplay></audio>
 <audio id="sfx-ring" src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3" loop></audio>
-<audio id="sfx-join" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"></audio>
 
 <script>
     const peer = new Peer();
-    let conn; // För chatten
-    let currentCall;
+    let conn = null; 
+    let currentCall = null;
     
     const chatBox = document.getElementById('chat-box');
     const chatInput = document.getElementById('chat-input');
     const ringtone = document.getElementById('sfx-ring');
 
-    // 1. Skapa Peer-anslutning
+    // När mitt ID är redo
     peer.on('open', id => {
-        document.body.className = "online";
         document.getElementById('display-id').innerText = "Ditt ID: " + id;
     });
 
-    // 2. Hantera CHATT (Data)
-    peer.on('connection', connection => {
+    // --- CHATT-LOGIK ---
+
+    // Lyssna på inkommande CHATT-anslutning
+    peer.on('connection', (connection) => {
         conn = connection;
-        setupChat();
+        setupChatListeners();
     });
 
-    function setupChat() {
-        conn.on('data', data => addMessage(data, 'them'));
-        conn.on('open', () => addMessage("System: Chatt ansluten!", 'them'));
+    function setupChatListeners() {
+        conn.on('open', () => {
+            addMessage("System: Ni är nu sammankopplade!", 'them');
+        });
+        conn.on('data', (data) => {
+            addMessage(data, 'them');
+        });
+        conn.on('close', () => {
+            addMessage("System: Anslutningen avbröts.", 'them');
+            conn = null;
+        });
     }
 
     function addMessage(text, side) {
@@ -108,29 +96,46 @@
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    document.getElementById('send-btn').onclick = () => {
-        const msg = chatInput.value;
-        if (!msg || !conn) return;
-        conn.send(msg);
-        addMessage(msg, 'me');
-        chatInput.value = '';
-    };
+    // Skicka meddelande
+    document.getElementById('send-btn').onclick = sendMessage;
+    chatInput.onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
 
-    // 3. Hantera SAMTAL (Ljud)
-    peer.on('call', call => {
-        ringtone.play().catch(() => {});
+    function sendMessage() {
+        const msg = chatInput.value;
+        if (!msg) return;
+        if (!conn || !conn.open) {
+            // Om ingen chatt finns, prova koppla upp mot ID:t i rutan
+            const id = document.getElementById('remote-id').value;
+            if(id) {
+                conn = peer.connect(id);
+                setupChatListeners();
+                // Vänta lite på anslutning sen skicka
+                setTimeout(() => { if(conn.open) { conn.send(msg); addMessage(msg, 'me'); } }, 500);
+            } else {
+                alert("Du måste ansluta till någon först!");
+            }
+        } else {
+            conn.send(msg);
+            addMessage(msg, 'me');
+        }
+        chatInput.value = '';
+    }
+
+    // --- RÖST-LOGIK ---
+
+    // Inkommande samtal
+    peer.on('call', (call) => {
+        ringtone.play().catch(()=>{});
         document.getElementById('incoming-overlay').style.display = 'flex';
 
         document.getElementById('answer-btn').onclick = async () => {
             ringtone.pause();
             document.getElementById('incoming-overlay').style.display = 'none';
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                audio: { deviceId: document.getElementById('mic-select').value } 
-            });
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             call.answer(stream);
-            setupVoiceUI(call);
+            handleVoice(call);
         };
-
+        
         document.getElementById('decline-btn').onclick = () => {
             ringtone.pause();
             document.getElementById('incoming-overlay').style.display = 'none';
@@ -138,47 +143,40 @@
         };
     });
 
+    // Ring upp (Kopplar både röst och chatt)
     document.getElementById('call-btn').onclick = async () => {
         const id = document.getElementById('remote-id').value;
-        if (!id) return;
-        
-        // Starta chatt-anslutning
-        conn = peer.connect(id);
-        setupChat();
+        if (!id) return alert("Ange ett ID!");
 
-        // Starta röst-anslutning
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const call = peer.call(id, stream);
-        setupVoiceUI(call);
+        // Koppla chatt
+        conn = peer.connect(id);
+        setupChatListeners();
+
+        // Koppla röst
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const call = peer.call(id, stream);
+            handleVoice(call);
+        } catch(e) { alert("Mikrofon krävs!"); }
     };
 
-    function setupVoiceUI(call) {
+    function handleVoice(call) {
         currentCall = call;
-        document.getElementById('sfx-join').play();
         document.getElementById('call-btn').style.display = 'none';
         document.getElementById('hangup-btn').style.display = 'block';
-        call.on('stream', stream => {
-            document.getElementById('remote-audio').srcObject = stream;
+        
+        call.on('stream', (remoteStream) => {
+            document.getElementById('remote-audio').srcObject = remoteStream;
         });
         call.on('close', () => location.reload());
     }
 
     document.getElementById('hangup-btn').onclick = () => location.reload();
 
-    // Ladda mikrofoner
-    navigator.mediaDevices.enumerateDevices().then(devices => {
-        const select = document.getElementById('mic-select');
-        devices.filter(d => d.kind === 'audioinput').forEach(d => {
-            const opt = document.createElement('option');
-            opt.value = d.deviceId;
-            opt.text = d.label || "Mikrofon " + (select.length + 1);
-            select.appendChild(opt);
-        });
-    });
-
     // Kopiera ID
     document.getElementById('display-id').onclick = function() {
-        navigator.clipboard.writeText(this.innerText.split(": ")[1]);
+        const id = this.innerText.replace("Ditt ID: ", "");
+        navigator.clipboard.writeText(id);
         alert("ID kopierat!");
     };
 </script>
